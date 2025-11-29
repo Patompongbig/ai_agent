@@ -1,91 +1,109 @@
-"""High-level service that wires FastAPI endpoints to LangGraph."""
+"""Factory orchestrator built on LangChain's ReAct agent."""
 from __future__ import annotations
 
+import json
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
-from langchain_core.messages import AIMessage
-from langchain_core.runnables import Runnable, RunnableLambda
-from langchain_core.tools import Tool
+from langchain.agents import create_react_agent
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 
 from ..config import settings
 from ..schemas import QueryRequest
-from .langgraph_factory import FactoryState, create_smart_factory_graph
-from .tools import check_stock, machine_a, machine_b, machine_c, tool_check_schedule
+from .prompting import build_completion_prompt, enrich_owner_prompt
+from .runtime import runtime_manager
+from .tools import (
+    add_order_to_schedule,
+    assign_machine,
+    get_schedule,
+    load_materials_available,
+    resource_tool,
+)
 
 logger = logging.getLogger(__name__)
 
+TOOLKIT = [
+    add_order_to_schedule,
+    get_schedule,
+    load_materials_available,
+    resource_tool,
+    assign_machine,
+]
+
 
 class FactoryOrchestrator:
-    """Facilitates conversations between the UI, tools, and LangGraph."""
+    """Coordinates FastAPI requests, tools, and the LangChain agent."""
 
     def __init__(self) -> None:
-        self.tools = self._init_tools()
         self.llm = self._init_llm()
-        self.graph = create_smart_factory_graph(self.llm, self.tools)
+        self.prompt = self._build_prompt()
+        self.agent = self._init_agent()
+        runtime_manager.register_completion_callback(self._handle_machine_completion)
 
-    def _init_llm(self) -> Runnable:
-        """Return the ChatOpenAI client or a safe fallback when no key is configured."""
-
-        if settings.openai_api_key:
-            client_kwargs: Dict[str, Any] = {
-                "model": settings.llm_model,
-                "temperature": 0,
-                "api_key": settings.openai_api_key,
-            }
-            if settings.openai_base_url:
-                client_kwargs["base_url"] = settings.openai_base_url
-            return ChatOpenAI(**client_kwargs)
-
-        logger.warning(
-            "OPENAI_API_KEY not set. Falling back to a mock LLM; /api/query responses "
-            "will be placeholders until a real API key is provided."
-        )
-        return RunnableLambda(
-            lambda messages: AIMessage(
-                content="LLM unavailable: configure OPENAI_API_KEY to enable decisions."
+    def _init_llm(self) -> Optional[ChatOpenAI]:
+        if not settings.openai_api_key:
+            logger.warning(
+                "OPENAI_API_KEY not configured; /api/query will return placeholders."
             )
+            return None
+        client_kwargs: Dict[str, Any] = {
+            "model": settings.llm_model,
+            "temperature": 0,
+            "api_key": settings.openai_api_key,
+        }
+        if settings.openai_base_url:
+            client_kwargs["base_url"] = settings.openai_base_url
+        return ChatOpenAI(**client_kwargs)
+
+    def _build_prompt(self) -> ChatPromptTemplate:
+        return ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    (
+                        "You are the orchestration brain for {factory_name}. "
+                        "Use the provided tools to reason over schedule.json and other "
+                        "plant data. Be explicit about what you can or cannot do."
+                    ).format(factory_name=settings.factory_name),
+                ),
+                ("human", "{input}"),
+                MessagesPlaceholder(variable_name="agent_scratchpad"),
+            ]
         )
 
-    def _init_tools(self) -> list[Tool]:
-        return [
-            Tool.from_function(
-                name="check_schedule",
-                description="Inspect and reason about the production schedule JSON",
-                func=tool_check_schedule,
-            ),
-            Tool.from_function(
-                name="check_stock",
-                description="Validate raw material inventory for a product",
-                func=check_stock,
-            ),
-            Tool.from_function(
-                name="machine_a",
-                description="Reserve machine A for a production task",
-                func=machine_a,
-            ),
-            Tool.from_function(
-                name="machine_b",
-                description="Reserve machine B for a production task",
-                func=machine_b,
-            ),
-            Tool.from_function(
-                name="machine_c",
-                description="Reserve machine C for a production task",
-                func=machine_c,
-            ),
-        ]
+    def _init_agent(self):
+        if not self.llm:
+            return None
+        return create_react_agent(self.llm, TOOLKIT, prompt=self.prompt)
 
     async def run(self, payload: QueryRequest) -> Dict[str, Any]:
-        state: FactoryState = {
-            "messages": [],
-            "context": {
-                "query": payload.message,
-                "metadata": payload.metadata or {},
-            },
+        if not self.agent:
+            return {
+                "output": "LLM unavailable. Set OPENAI_API_KEY to enable ReAct agent.",
+                "intermediate_steps": [],
+            }
+
+        enriched = enrich_owner_prompt(payload.message)
+        agent_input = self._format_input(enriched, payload.metadata)
+        result = await self.agent.ainvoke({"input": agent_input})
+        return {
+            "output": result.get("output"),
+            "intermediate_steps": result.get("intermediate_steps", []),
         }
-        return await self.graph.ainvoke(state)
+
+    def _format_input(self, message: str, metadata: Optional[Dict[str, Any]]) -> str:
+        if not metadata:
+            return message
+        serialized = json.dumps(metadata, ensure_ascii=False)
+        return f"{message}\n\n[metadata]\n{serialized}"
+
+    async def _handle_machine_completion(self, context: Dict[str, Any]) -> None:
+        if not self.agent:
+            logger.info("Skipping completion callback because LLM is unavailable")
+            return
+        prompt = build_completion_prompt(context)
+        await self.agent.ainvoke({"input": prompt})
 
 
 orchestrator = FactoryOrchestrator()

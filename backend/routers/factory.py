@@ -12,7 +12,7 @@ from ..schemas import (
 )
 from ..services.data_store import JSONDataStore, get_data_store
 from ..services.orchestrator import orchestrator
-from ..services.tools import tracker
+from ..services.runtime import runtime_manager
 
 router = APIRouter(prefix="/api", tags=["factory"])
 
@@ -42,13 +42,13 @@ def get_machine_state(store: JSONDataStore = Depends(get_data_store)):
     """Show current machine toggles and accumulated runtime."""
 
     states = store.load_machine_states()
-    durations = tracker.summarize()
+    durations = runtime_manager.summarize()
     return MachineState(states=states, durations=durations)
 
 
 @router.post("/query", response_model=QueryResponse)
 async def run_owner_query(payload: QueryRequest):
-    """Send a natural-language query into the LangGraph orchestrator."""
+    """Send a natural-language query into the ReAct agent orchestrator."""
 
     raw_response = await orchestrator.run(payload)
-    return QueryResponse(plan=raw_response.get("context", {}), raw_messages=raw_response)
+    return QueryResponse(**raw_response)

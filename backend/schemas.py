@@ -22,8 +22,8 @@ class QueryRequest(BaseModel):
 
 
 class QueryResponse(BaseModel):
-    plan: Dict[str, Any]
-    raw_messages: Dict[str, Any]
+    output: Any
+    intermediate_steps: Optional[Any] = None
 
 
 class InventorySnapshot(BaseModel):
