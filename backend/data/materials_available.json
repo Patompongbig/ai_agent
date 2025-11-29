@@ -1,6 +1,11 @@
 {
-  "steel": 400,
-  "plastic": 250,
-  "copper": 120,
-  "aluminum": 310
+  "leather": 700,
+  "fabric": 493.0,
+  "rubber_sole": 2193.0,
+  "foam_insole": 2196.5,
+  "buckle": 2000,
+  "laces": 1186.0,
+  "heel_block": 600,
+  "glue": 1998.95,
+  "thread": 14998.6
 }

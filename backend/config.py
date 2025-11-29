@@ -1,9 +1,12 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Final
+
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
 BASE_DIR: Final[Path] = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
 
 
 class DataPaths:
@@ -17,10 +20,8 @@ class DataPaths:
 
 class Settings(BaseSettings):
     factory_name: str = "Blue River Smart Factory"
-    llm_model: str = "gpt-4o-mini"
-
-    openai_api_key: str | None = None
-    openai_base_url: str | None = None
+    llm_model: str = "qwen2.5:7b"
+    ollama_base_url: str = "http://localhost:11434"
 
     data_paths: DataPaths = DataPaths()
 

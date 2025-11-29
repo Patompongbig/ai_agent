@@ -1,14 +1,27 @@
 {
-  "widget_a": {
-    "steel": 2,
-    "plastic": 1
+  "sandals": {
+    "leather": 1.0,
+    "rubber_sole": 1.0,
+    "foam_insole": 0.5,
+    "buckle": 2.0,
+    "glue": 0.2,
+    "thread": 0.1
   },
-  "widget_b": {
-    "steel": 3,
-    "copper": 1
+  "high_heels": {
+    "leather": 1.2,
+    "heel_block": 1.0,
+    "rubber_sole": 1.0,
+    "foam_insole": 0.5,
+    "buckle": 1.0,
+    "glue": 0.25,
+    "thread": 0.15
   },
-  "widget_c": {
-    "aluminum": 4,
-    "plastic": 2
+  "sneakers": {
+    "fabric": 1.0,
+    "rubber_sole": 1.0,
+    "foam_insole": 0.5,
+    "laces": 2.0,
+    "glue": 0.15,
+    "thread": 0.2
   }
 }

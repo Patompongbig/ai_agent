@@ -27,8 +27,8 @@ class QueryResponse(BaseModel):
 
 
 class InventorySnapshot(BaseModel):
-    materials_available: Dict[str, int]
-    materials_usage: Dict[str, Dict[str, int]]
+    materials_available: Dict[str, float]
+    materials_usage: Dict[str, Dict[str, float]]
 
 
 class MachineState(BaseModel):
