@@ -1,5 +1,9 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 """High-level service that wires FastAPI endpoints to LangGraph."""
+=======
+"""Factory orchestrator using LangGraph's create_react_agent with Ollama."""
+>>>>>>> Stashed changes
 =======
 """Factory orchestrator using LangGraph's create_react_agent with Ollama."""
 >>>>>>> Stashed changes
@@ -7,12 +11,20 @@ from __future__ import annotations
 
 import logging
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 from typing import Any, Dict
 
 from langchain_core.messages import AIMessage
 from langchain_core.runnables import Runnable, RunnableLambda
 from langchain_core.tools import Tool
 from langchain_openai import ChatOpenAI
+=======
+from typing import Any, Dict, List, Optional
+
+from langchain_ollama import ChatOllama
+from langchain_core.messages import HumanMessage
+from langgraph.prebuilt import create_react_agent
+>>>>>>> Stashed changes
 =======
 from typing import Any, Dict, List, Optional
 
@@ -31,7 +43,11 @@ logger = logging.getLogger(__name__)
 
 class FactoryOrchestrator:
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     """Facilitates conversations between the UI, tools, and LangGraph."""
+=======
+    """Coordinates FastAPI requests, tools, and the LangGraph agent."""
+>>>>>>> Stashed changes
 =======
     """Coordinates FastAPI requests, tools, and the LangGraph agent."""
 >>>>>>> Stashed changes
@@ -41,6 +57,7 @@ class FactoryOrchestrator:
         self.llm = self._init_llm()
         self.graph = create_smart_factory_graph(self.llm, self.tools)
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
     def _init_llm(self) -> Runnable:
         """Return the ChatOpenAI client or a safe fallback when no key is configured."""
@@ -104,6 +121,8 @@ class FactoryOrchestrator:
         }
         return await self.graph.ainvoke(state)
 =======
+=======
+>>>>>>> Stashed changes
     def _init_llm(self) -> Optional[ChatOllama]:
         try:
             return ChatOllama(
@@ -273,6 +292,9 @@ If an action cannot be completed due to insufficient materials, no available mac
             )
         except Exception:  # pragma: no cover - defensive logging
             logger.exception("Auto-run agent invocation failed after completion")
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
 

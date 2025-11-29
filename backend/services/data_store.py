@@ -49,6 +49,15 @@ class JSONDataStore:
 
     def load_machine_states(self) -> Dict[str, int]:
         return dict(self._safe_read(self.machines_path, {}))
+<<<<<<< Updated upstream
+=======
+
+    def save_schedule(self, entries: List[Dict[str, Any]]) -> None:
+        self._write(self.schedule_path, entries)
+
+    def save_materials_available(self, materials: Dict[str, int]) -> None:
+        self._write(self.materials_available_path, materials)
+>>>>>>> Stashed changes
 
     def update_machine_state(self, machine: str, value: int) -> Dict[str, int]:
         data = self.load_machine_states()
